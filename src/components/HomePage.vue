@@ -119,14 +119,13 @@ h2 {
   -webkit-box-shadow: 0px 0px 7px -1px rgba(0,0,0,0.90);
   -moz-box-shadow: 0px 0px 7px -1px rgba(0,0,0,0.90);
   box-shadow: 0px 0px 7px -1px rgba(0,0,0,0.90);
-  &:hover {
-    cursor: pointer;
-  }
   &.show-github,
   &.show-credits {
     transition: all .5s ease-in-out;
     transform: scale(0.8) translateY(-110px);
-
+    &:hover {
+      cursor: pointer;
+    }
   }
 }
 .credits-link {
@@ -137,8 +136,8 @@ h2 {
   font-weight: 300;
   font-size: 16px;
   svg {
-    width: 32px;
-    height: 32px;
+    width: 16px;
+    height: 16px;
   }
 }
 .github-link {
