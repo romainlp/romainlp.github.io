@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Amp Control — Arcam Remote for iOS</title>
+  <meta name="description" content="A beautifully crafted iOS remote control for Arcam hi-fi amplifiers. Control volume, inputs, and every setting from your iPhone." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset ───────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Tokens — dark ───────────────────────────────────────────────────── */
+    :root {
+      --bg:           #161A24;
+      --bg-2:         #1A1E28;
+      --surface:      #1D2232;
+      --border:       rgba(255, 255, 255, 0.06);
+      --border-hover: rgba(255, 255, 255, 0.12);
+      --shadow:       rgba(0, 0, 0, 0.25);
+      --text:         #7A8699;
+      --text-dim:     #3E4A5E;
+      --text-bright:  #C8D4E8;
+      --nav-bg:       rgba(22, 26, 36, 0.82);
+      --accent:       #F472B6;
+      --accent-dim:   rgba(244, 114, 182, 0.08);
+      --grain-opacity: 0.04;
+      --radius-sm:    10px;
+      --radius-md:    16px;
+      --radius-lg:    24px;
+    }
+
+    /* ── Tokens — light ──────────────────────────────────────────────────── */
+    [data-theme="light"] {
+      --bg:           #F0F3F8;
+      --bg-2:         #EDF0F5;
+      --surface:      #E8ECF4;
+      --border:       rgba(0, 0, 0, 0.07);
+      --border-hover: rgba(0, 0, 0, 0.14);
+      --shadow:       rgba(160, 176, 200, 0.18);
+      --text:         #5A6680;
+      --text-dim:     #9AA4B8;
+      --text-bright:  #1A2035;
+      --nav-bg:       rgba(240, 243, 248, 0.88);
+      --accent:       #EC4899;
+      --accent-dim:   rgba(236, 72, 153, 0.07);
+      --grain-opacity: 0.06;
+    }
+
+    /* ── Base ────────────────────────────────────────────────────────────── */
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: "Jost", sans-serif;
+      font-weight: 400;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* ── Grain ───────────────────────────────────────────────────────────── */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 200;
+      opacity: var(--grain-opacity);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.68' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+      transition: opacity 0.3s;
+    }
+
+    /* ── Background gradient ─────────────────────────────────────────────── */
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 80% 10%, rgba(244, 114, 182, 0.04) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 40% at 10% 80%, rgba(96, 165, 250, 0.03) 0%, transparent 70%);
+    }
+
+    /* ── Layout ──────────────────────────────────────────────────────────── */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 32px;
+      position: relative;
+      z-index: 1;
+    }
+
+    section { padding: 96px 0; }
+
+    /* ── Nav ─────────────────────────────────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--nav-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      transition: background 0.3s, border-color 0.3s;
+    }
+
+    nav .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 58px;
+    }
+
+    .nav-brand {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: var(--text-bright);
+    }
+    .nav-brand span { color: var(--accent); }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .nav-link {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-link:hover { color: var(--text-bright); }
+
+    /* ── Theme toggle ────────────────────────────────────────────────────── */
+    #theme-toggle {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s, background 0.2s;
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+    #theme-toggle:hover {
+      border-color: var(--border-hover);
+      color: var(--text);
+    }
+
+    #icon-moon { display: block; }
+    #icon-sun  { display: none; }
+    [data-theme="light"] #icon-moon { display: none; }
+    [data-theme="light"] #icon-sun  { display: block; }
+
+    /* ── Hero ────────────────────────────────────────────────────────────── */
+    #hero {
+      padding: 120px 0 96px;
+      text-align: center;
+    }
+
+    .hero-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 32px;
+    }
+    .hero-label::before,
+    .hero-label::after {
+      content: "";
+      width: 24px;
+      height: 1px;
+      background: var(--accent);
+      opacity: 0.4;
+    }
+
+    h1 {
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(48px, 8vw, 80px);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1.05;
+      color: var(--text-bright);
+      margin-bottom: 24px;
+    }
+
+    h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .hero-sub {
+      font-size: 16px;
+      font-weight: 300;
+      color: var(--text);
+      max-width: 420px;
+      margin: 0 auto 48px;
+      line-height: 1.8;
+      letter-spacing: 0.01em;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent);
+      color: #fff;
+      font-family: "Jost", sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 12px 24px;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.85; transform: translateY(-1px); }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: "Jost", sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 11px 24px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      text-decoration: none;
+      color: var(--text);
+      background: transparent;
+      transition: border-color 0.2s, color 0.2s, transform 0.15s;
+    }
+    .btn-secondary:hover {
+      border-color: var(--border-hover);
+      color: var(--text-bright);
+      transform: translateY(-1px);
+    }
+
+    /* ── Phone frame ─────────────────────────────────────────────────────── */
+    .screenshot-wrap {
+      margin: 80px auto 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    .phone-frame {
+      position: relative;
+      width: 240px;
+      aspect-ratio: 9 / 19.5;
+      border-radius: 40px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 60px var(--shadow), 0 4px 16px var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      transition: background 0.3s, border-color 0.3s;
+    }
+
+    .phone-frame::before {
+      content: "";
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 26px;
+      background: var(--bg);
+      border-radius: 16px;
+      z-index: 1;
+      transition: background 0.3s;
+    }
+
+    .screenshot-placeholder-icon { font-size: 28px; opacity: 0.18; }
+
+    .screenshot-placeholder-text {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .phone-frame img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 40px;
+    }
+
+    /* ── Divider ─────────────────────────────────────────────────────────── */
+    .section-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── Section header ──────────────────────────────────────────────────── */
+    .section-header { margin-bottom: 56px; }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-label::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .section-title {
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(30px, 4vw, 44px);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text-bright);
+      line-height: 1.15;
+    }
+
+    /* ── Features ────────────────────────────────────────────────────────── */
+    #features { padding-top: 80px; }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(256px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .feature-card {
+      background: var(--bg-2);
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+    .feature-card:hover { background: var(--surface); }
+
+    .feature-icon {
+      font-size: 20px;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .feature-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-bright);
+      letter-spacing: 0.01em;
+    }
+
+    .feature-desc {
+      font-size: 13px;
+      font-weight: 300;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    /* ── Footer ──────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+    }
+
+    footer .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .footer-note {
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      color: var(--text-dim);
+    }
+
+    .footer-note a {
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-note a:hover { color: var(--text); }
+
+    /* ── Scroll animations ───────────────────────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* stagger children */
+    .reveal-group > * {
+      opacity: 0;
+      transform: translateY(14px);
+      transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal-group.visible > *:nth-child(1)  { opacity: 1; transform: none; transition-delay: 0.00s; }
+    .reveal-group.visible > *:nth-child(2)  { opacity: 1; transform: none; transition-delay: 0.05s; }
+    .reveal-group.visible > *:nth-child(3)  { opacity: 1; transform: none; transition-delay: 0.10s; }
+    .reveal-group.visible > *:nth-child(4)  { opacity: 1; transform: none; transition-delay: 0.15s; }
+    .reveal-group.visible > *:nth-child(5)  { opacity: 1; transform: none; transition-delay: 0.20s; }
+    .reveal-group.visible > *:nth-child(6)  { opacity: 1; transform: none; transition-delay: 0.25s; }
+    .reveal-group.visible > *:nth-child(7)  { opacity: 1; transform: none; transition-delay: 0.30s; }
+    .reveal-group.visible > *:nth-child(8)  { opacity: 1; transform: none; transition-delay: 0.35s; }
+    .reveal-group.visible > *:nth-child(9)  { opacity: 1; transform: none; transition-delay: 0.40s; }
+    .reveal-group.visible > *:nth-child(10) { opacity: 1; transform: none; transition-delay: 0.45s; }
+    .reveal-group.visible > *:nth-child(11) { opacity: 1; transform: none; transition-delay: 0.50s; }
+    .reveal-group.visible > *:nth-child(12) { opacity: 1; transform: none; transition-delay: 0.55s; }
+
+    /* hero animates on load */
+    .hero-animate {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .hero-animate:nth-child(1) { animation-delay: 0.1s; }
+    .hero-animate:nth-child(2) { animation-delay: 0.22s; }
+    .hero-animate:nth-child(3) { animation-delay: 0.34s; }
+    .hero-animate:nth-child(4) { animation-delay: 0.46s; }
+    .hero-animate:nth-child(5) { animation-delay: 0.58s; }
+
+    @keyframes fadeUp {
+      to { opacity: 1; transform: none; }
+    }
+
+    /* ── Responsive ──────────────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .container { padding: 0 20px; }
+      section { padding: 72px 0; }
+      #hero { padding: 88px 0 72px; }
+      .features-grid { grid-template-columns: 1fr; }
+      footer .container { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav>
+    <div class="container">
+      <span class="nav-brand">Amp<span> Control</span></span>
+      <div class="nav-right">
+        <a class="nav-link" href="#features">Features</a>
+        <button id="theme-toggle" aria-label="Toggle colour scheme">
+          <svg id="icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          <svg id="icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1"  x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22"  x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1"  y1="12" x2="3"  y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section id="hero">
+    <div class="container">
+      <span class="hero-label hero-animate">For Arcam SA10 &amp; compatible</span>
+      <h1 class="hero-animate">Your Arcam amp,<br><em>in your pocket.</em></h1>
+      <p class="hero-sub hero-animate">
+        A beautifully crafted iOS remote for Arcam hi-fi amplifiers.
+        Full control over every setting — from your sofa.
+      </p>
+      <div class="hero-actions hero-animate">
+        <a href="#" class="btn-primary" aria-disabled="true" style="opacity:0.35; pointer-events:none;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98l-.09.06c-.22.14-2.18 1.27-2.16 3.8.03 3.02 2.65 4.03 2.68 4.04l-.07.28zM13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+          Coming soon
+        </a>
+        <a href="https://github.com/romainlepolh/arcam-remote-control" class="btn-secondary"
+           target="_blank" rel="noopener">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844a9.59 9.59 0 012.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+          GitHub
+        </a>
+      </div>
+
+      <!-- Screenshot -->
+      <div class="screenshot-wrap hero-animate">
+        <div class="phone-frame">
+          <!-- Replace with: <img src="screenshot.png" alt="Amp Control screenshot" /> -->
+          <span class="screenshot-placeholder-icon">📱</span>
+          <span class="screenshot-placeholder-text">Screenshot coming</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features">
+    <div class="container">
+      <div class="section-header reveal">
+        <p class="section-label">What it does</p>
+        <h2 class="section-title">Everything your remote<br>should do.</h2>
+      </div>
+      <div class="features-grid reveal-group">
+
+        <div class="feature-card">
+          <span class="feature-icon">🔊</span>
+          <div class="feature-title">Volume control</div>
+          <div class="feature-desc">Rotary knob with drag gesture. Optional safe-mode cap to protect your ears and speakers.</div>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">⚡</span>
+          <div class="feature-title">Power &amp; mute</div>
+          <div class="feature-desc">Instant on/off and mute with optimistic UI — no perceptible lag.</div>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">🎛️</span>
+          <div class="feature-title">Input selection</div>
+          <div class="feature-desc">Switch between Aux, Phone, STB, PVR, CD, BD, AV and Sat from a clean picker.</div>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">⚖️</span>
+          <div class="feature-title">Balance</div>
+          <div class="feature-desc">Fine-tune left/right balance from −12 to +12 with a smooth slider.</div>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">💡</span>
+          <div class="feature-title">Display brightness</div>
+          <div class="feature-desc">Set the front panel to off, dim, or full — ideal for late-night listening.</div>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">🎚️</span>
+          <div class="feature-title">DAC filter</div>
+          <div class="feature-desc">Linear Phase Fast, Linear Phase Slow, or Minimum Phase Fast.</div>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">⏱️</span>
+          <div class="feature-title">Auto-shutdown</div>
+          <div class="feature-desc">Inactivity shutdown: disabled, 30 min, 1 h, 2 h or 4 h.</div>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">🎧</span>
+          <div class="feature-title">Headphone override</div>
+          <div class="feature-desc">Keep speakers active when headphones are plugged in.</div>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">🔍</span>
+          <div class="feature-title">Auto-discovery</div>
+          <div class="feature-desc">Scans your local network and finds Arcam amplifiers automatically.</div>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">📊</span>
+          <div class="feature-title">Device info</div>
+          <div class="feature-desc">Live readout of firmware version, sample rate, and output temperature.</div>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">🎨</span>
+          <div class="feature-title">Accent colours</div>
+          <div class="feature-desc">Eight accent colours to match your mood. Persisted across sessions.</div>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">🔒</span>
+          <div class="feature-title">Processor mode</div>
+          <div class="feature-desc">Fixed-gain processor mode per input for home theatre pass-through.</div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <span class="footer-note">
+        &copy; <script>document.write(new Date().getFullYear())</script> Romain Le Polh &mdash;
+        <a href="https://github.com/romainlepolh/arcam-remote-control">Open source on GitHub</a>
+      </span>
+      <span class="footer-note">
+        Not affiliated with <a href="https://www.arcam.co.uk" target="_blank" rel="noopener">Arcam</a>
+      </span>
+    </div>
+  </footer>
+
+  <script>
+    // ── Theme ──────────────────────────────────────────────────────────────
+    const html = document.documentElement;
+    const btn  = document.getElementById('theme-toggle');
+    const saved = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if ((saved ?? (prefersDark ? 'dark' : 'light')) === 'light') {
+      html.setAttribute('data-theme', 'light');
+    }
+    btn.addEventListener('click', () => {
+      const isLight = html.getAttribute('data-theme') === 'light';
+      if (isLight) { html.removeAttribute('data-theme'); localStorage.setItem('theme', 'dark'); }
+      else          { html.setAttribute('data-theme', 'light'); localStorage.setItem('theme', 'light'); }
+    });
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+      if (localStorage.getItem('theme')) return;
+      e.matches ? html.removeAttribute('data-theme') : html.setAttribute('data-theme', 'light');
+    });
+
+    // ── Scroll reveals ─────────────────────────────────────────────────────
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.reveal, .reveal-group').forEach(el => observer.observe(el));
+  </script>
+
+</body>
+</html>
