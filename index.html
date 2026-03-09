@@ -266,28 +266,29 @@
       transform: translateY(-1px);
     }
 
-    /* ── Phone frame ─────────────────────────────────────────────────────── */
+    /* ── Phone frames ────────────────────────────────────────────────────── */
     .screenshot-wrap {
       margin: 80px auto 0;
       display: flex;
       justify-content: center;
     }
 
+    .phones-row {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 20px;
+    }
+
     .phone-frame {
       position: relative;
-      width: 240px;
       aspect-ratio: 9 / 19.5;
       border-radius: 40px;
       background: var(--surface);
       border: 1px solid var(--border);
-      box-shadow: 0 20px 60px var(--shadow), 0 4px 16px var(--shadow);
       overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
       transition: background 0.3s, border-color 0.3s;
+      flex-shrink: 0;
     }
 
     .phone-frame::before {
@@ -304,14 +305,18 @@
       transition: background 0.3s;
     }
 
-    .screenshot-placeholder-icon { font-size: 28px; opacity: 0.18; }
+    .phone-main {
+      width: 240px;
+      box-shadow: 0 24px 64px var(--shadow), 0 4px 16px var(--shadow);
+      z-index: 1;
+    }
 
-    .screenshot-placeholder-text {
-      font-size: 10px;
-      font-weight: 500;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--text-dim);
+    .phone-side {
+      width: 200px;
+      opacity: 0.65;
+      transform: translateY(24px);
+      box-shadow: 0 12px 40px var(--shadow);
+      transition: background 0.3s, border-color 0.3s, opacity 0.3s;
     }
 
     .phone-frame img {
@@ -322,6 +327,11 @@
       object-fit: cover;
       border-radius: 40px;
     }
+
+    /* Theme-aware screenshots */
+    .light-only { display: none; }
+    [data-theme="light"] .dark-only  { display: none; }
+    [data-theme="light"] .light-only { display: block; }
 
     /* ── Divider ─────────────────────────────────────────────────────────── */
     .section-divider {
@@ -485,6 +495,7 @@
       #hero { padding: 88px 0 72px; }
       .features-grid { grid-template-columns: 1fr; }
       footer .container { flex-direction: column; align-items: flex-start; }
+      .phone-side { display: none; }
     }
   </style>
 </head>
@@ -539,12 +550,21 @@
         </a>
       </div>
 
-      <!-- Screenshot -->
+      <!-- Screenshots -->
       <div class="screenshot-wrap hero-animate">
-        <div class="phone-frame">
-          <!-- Replace with: <img src="screenshot.png" alt="Amp Control screenshot" /> -->
-          <span class="screenshot-placeholder-icon">📱</span>
-          <span class="screenshot-placeholder-text">Screenshot coming</span>
+        <div class="phones-row">
+          <div class="phone-frame phone-side">
+            <img src="assets/screen1-dark.png"  class="dark-only"  alt="Amp Control screen 1" />
+            <img src="assets/screen1-light.png" class="light-only" alt="Amp Control screen 1" />
+          </div>
+          <div class="phone-frame phone-main">
+            <img src="assets/screen2-dark.png"  class="dark-only"  alt="Amp Control screen 2" />
+            <img src="assets/screen2-light.png" class="light-only" alt="Amp Control screen 2" />
+          </div>
+          <div class="phone-frame phone-side">
+            <img src="assets/screen3-dark.png"  class="dark-only"  alt="Amp Control screen 3" />
+            <img src="assets/screen3-light.png" class="light-only" alt="Amp Control screen 3" />
+          </div>
         </div>
       </div>
     </div>
